@@ -1,0 +1,66 @@
+{{ $project := .Get "project" }}
+
+{{ if not $project }}
+{{ errorf "unity missing 'project' directory" }}
+{{ end }}
+
+{{ .Scratch.Set "contentStyle" "all: inherit; margin: 25px auto; position: relative;" }}
+{{ .Scratch.Set "containerStyle" "position: relative; height: calc(100% - 38px);"}}
+
+{{ if (and (.Get "width") (.Get "height")) }}
+    {{ .Scratch.Add "contentStyle" (print " width: " (.Get "width") "; height: " (.Get "height") ";") }}
+
+{{ else if .Get "aspect"}}
+    {{ $width := .Get "width" | default "100%" }}
+    {{ .Scratch.Add "contentStyle" (print " width: " $width "; padding-top: ") }}
+    
+    {{ $ratios := split (.Get "aspect") ":" }}
+    {{ $subWidthMultiplier := div (float (strings.TrimSuffix "%" $width)) 100 }}
+    {{ $percent := mul (mul (div (float (index $ratios 1)) (float (index $ratios 0))) 100) $subWidthMultiplier}}
+    {{ .Scratch.Add "contentStyle" (print (string $percent) "%;") }}
+
+    {{ .Scratch.Set "containerStyle" "position: absolute; top: 0; left: 0; bottom: 0; right: 0; height: calc(100% - 38px);" }}
+{{ end }}
+
+{{ $contentStyle := .Scratch.Get "contentStyle" }}
+{{ $containerStyle := .Scratch.Get "containerStyle" }}
+
+<link rel="stylesheet" href="{{ $project }}/TemplateData/style.css">
+<script src="{{ $project }}/TemplateData/UnityProgress.js"></script>
+<script src="{{ $project }}/Build/UnityLoader.js"></script>
+<script type="text/javascript">
+    {{ if eq (.Get "autoplay") "true" }}
+        var unityInstance = UnityLoader.instantiate("unityContainer", "{{ $project }}/Build/{{ $project }}.json", {onProgress: UnityProgress});
+        document.getElementById("unity-fullscreen").addEventListener("click", function() {
+            unityInstance.SetFullscreen(1);
+        });
+
+    {{ else }}
+        function LoadUnity() {
+            var unityInstance = UnityLoader.instantiate("unityContainer", "{{ $project }}/Build/{{ $project }}.json", {onProgress: UnityProgress});
+            document.getElementById("unity-fullscreen").addEventListener("click", function() {
+                unityInstance.SetFullscreen(1);
+            });
+        }
+    {{ end }}
+</script>
+
+<div class="webgl-content" style="{{ $contentStyle | safeCSS }}">
+    <div id="unityContainer" style="{{ $containerStyle | safeCSS }}">
+        <div style="display: flex; justify-content: center; height: 100%; background-color: rgba(30, 144,255, 0.5);">
+            <button onclick="LoadUnity()" style="width: 40%; height: 30%; margin: auto; font-size: 2em">Click to Load Unity Web Player</button>
+            <div id=device-error style="display: none; margin: auto"><span style="font-size: 2em">Sorry, device not supported.</span></div>
+        </div>
+    </div>
+    <div class="unity-footer">
+        {{ if ne (.Get "ulogo") "hidden"}} <div class="webgl-logo">{{.Get "ulogo"}}</div> {{ end }}
+        {{ if ne (.Get "fullscreen") "hidden"}}<div class="fullscreen" id="unity-fullscreen"></div> {{ end }}
+        {{ if ne (.Get "title") "hidden"}}<div class="title">
+            {{ with .Page.Resources.GetMatch (print $project "/Build/*.json") }}
+                {{ with .Content | transform.Unmarshal }}
+                    {{ .productName }}
+                {{ end }}
+            {{ end }}
+        </div>{{ end }}
+    </div>
+</div>

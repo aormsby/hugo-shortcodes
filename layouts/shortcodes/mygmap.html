@@ -1,0 +1,10 @@
+{{ $id := .Get "id" }}
+{{ $height := .Get "height" | default "480"}}
+
+{{ if $id }}
+<div class="google-map">
+	<iframe src='https://www.google.com/maps/d/embed?mid={{ $id }}' width="100%" height="{{ $height }}" frameborder="0" style="border-radius: 8px;"></iframe>
+</div>
+{{ else }}
+{{ errorf "missing mygmap 'id' value" }}
+{{ end }}
